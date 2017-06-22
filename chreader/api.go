@@ -1,3 +1,4 @@
+// Package chreader reads metrics from cloudhealth
 package chreader
 
 import (
@@ -5,35 +6,26 @@ import (
 	"time"
 )
 
-// Instance related metric names
-const (
-	CpuUsedPercentAvg = "cpu:used:percent.avg"
-	CpuUsedPercentMax = "cpu:used:percent.max"
-	CpuUsedPercentMin = "cpu:used:percent.min"
-	// Continue
-)
-
-// File system related metric names
-const (
-	FsSizeBytesAvg = "fs:size:bytes.avg"
-	FsSizeBytesMax = "fs:size:bytes.max"
-	FsSizeBytesMin = "fs:size:bytes.min"
-	// Continue
-)
-
+// An Entry represents all the cloudhealth metrics at a particular timestamp
 type Entry struct {
-	Time   time.Time
+	// The timestamp
+	Time time.Time
+	// Keys are the metric names values are the metric values.
 	Values map[string]float64
 }
 
+// CH is the interface for fetching one page of metrics from CloudHealth.
+// Most clients will not need to use this interface.
 type CH interface {
 	Fetch(url string) (entries []*Entry, next string, err error)
 }
 
 var (
+	// DefaultCH is the default implementation of CH.
 	DefaultCH CH = &chType{}
 )
 
+// Config represents the configuration for a Reader.
 type Config struct {
 	ApiKey string `yaml:"apiKey"`
 }
@@ -47,11 +39,27 @@ func (c *Config) Reset() {
 	*c = Config{}
 }
 
+// Reader is the interface for reading metrics from CloudHealth.
 type Reader interface {
+	// Read reads the metrics for a particular asset between start time
+	// inclusive and end time exclusive. assetId looks like
+	// "arn:aws:ec2:us-east-1:12345678901:instance/i-12345678"
 	Read(assetId string, start, end time.Time) ([]*Entry, error)
 }
 
-func NewReader(c Config, ch CH, now func() time.Time) Reader {
+// NewReader creates a new reader
+func NewReader(c Config) Reader {
+	return &chReaderType{
+		config: c,
+		ch:     DefaultCH,
+		now:    time.Now,
+	}
+}
+
+// NewCustomReader creates a new reader that uses a custom implementation
+// of CH and a custom clock. now is the function returning the current time.
+// Clients pass time.Now for the system clock.
+func NewCustomReader(c Config, ch CH, now func() time.Time) Reader {
 	return &chReaderType{
 		config: c,
 		ch:     ch,

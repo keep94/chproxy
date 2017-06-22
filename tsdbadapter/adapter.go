@@ -2,21 +2,21 @@ package tsdbadapter
 
 import (
 	"fmt"
+	"github.com/Symantec/chproxy/chreader"
 	"github.com/Symantec/scotty/tsdb"
 	"strings"
 	"time"
 )
 
-func (a *Adapter) fetch(
-	region,
-	accountNumber,
-	instanceId string,
+func fetch(
+	reader chreader.Reader,
+	asset *Asset,
 	name string,
 	start,
 	end int64) (tsdb.TimeSeries, error) {
 	fsMetric := strings.HasPrefix(name, "fs:")
-	entries, err := a.reader.Read(
-		computeAssetId(region, accountNumber, instanceId, fsMetric),
+	entries, err := reader.Read(
+		computeAssetId(asset, fsMetric),
 		millisToTime(start),
 		millisToTime(end))
 	if err != nil {
@@ -43,18 +43,17 @@ func millisToTime(millis int64) time.Time {
 	return time.Unix(secs, mils*1000*1000)
 }
 
-func computeAssetId(
-	region, accountNumber, instanceId string, fsMetric bool) string {
+func computeAssetId(asset *Asset, fsMetric bool) string {
 	if fsMetric {
 		return fmt.Sprintf(
 			"arn:aws:ec2:%s:%s:instance/%s:fs//",
-			region,
-			accountNumber,
-			instanceId)
+			asset.Region,
+			asset.AccountNumber,
+			asset.InstanceId)
 	}
 	return fmt.Sprintf(
 		"arn:aws:ec2:%s:%s:instance/%s",
-		region,
-		accountNumber,
-		instanceId)
+		asset.Region,
+		asset.AccountNumber,
+		asset.InstanceId)
 }

@@ -126,7 +126,7 @@ func TestReader(t *testing.T) {
 			ApiKey:      kApiKey,
 			AssetId:     kAssetId}
 		Convey("With valid reader", func() {
-			reader := chreader.NewReader(
+			reader := chreader.NewCustomReader(
 				chreader.Config{
 					ApiKey: kApiKey,
 				},
@@ -219,7 +219,7 @@ func TestReader(t *testing.T) {
 			})
 		})
 		Convey("With wrong API Key", func() {
-			reader := chreader.NewReader(
+			reader := chreader.NewCustomReader(
 				chreader.Config{
 					ApiKey: "wrongKey",
 				},

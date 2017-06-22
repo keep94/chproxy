@@ -89,143 +89,139 @@ func TestAdapter(t *testing.T) {
 			AssetId:   "arn:aws:ec2:us-east-1:12345:instance/i-12345678",
 			FsAssetId: "arn:aws:ec2:us-east-1:12345:instance/i-12345678:fs//",
 		}
-		Convey("With adapter", func() {
-			adapter := tsdbadapter.New(fakeReader)
-			Convey("cpu:even metric using instance asset", func() {
-				timeSeries, err := adapter.Fetch(
-					"us-east-1",
-					"12345",
-					"i-12345678",
-					"cpu:even",
-					kNowMillis,
-					kNowMillis+5*3600*1000)
-				So(
-					timeSeries,
-					ShouldResemble,
-					tsdb.TimeSeries{
-						{
-							Ts:    kNowSecs,
-							Value: kNowSecs / 3600.0,
-						},
-						{
-							Ts:    kNowSecs + 2.0*3600.0,
-							Value: kNowSecs/3600.0 + 2.0,
-						},
-						{
-							Ts:    kNowSecs + 4.0*3600.0,
-							Value: kNowSecs/3600.0 + 4.0,
-						},
-					})
-				So(err, ShouldBeNil)
-				So(fakeReader.FsUseCount, ShouldEqual, 0)
-				So(fakeReader.InstanceUseCount, ShouldEqual, 1)
-			})
-			Convey("cpu:odd metric using instance asset", func() {
-				timeSeries, err := adapter.Fetch(
-					"us-east-1",
-					"12345",
-					"i-12345678",
-					"cpu:odd",
-					kNowMillis,
-					kNowMillis+5*3600*1000)
-				So(
-					timeSeries,
-					ShouldResemble,
-					tsdb.TimeSeries{
-						{
-							Ts:    kNowSecs + 3600.0,
-							Value: kNowSecs/3600.0 + 1.0,
-						},
-						{
-							Ts:    kNowSecs + 3.0*3600.0,
-							Value: kNowSecs/3600.0 + 3.0,
-						},
-					})
-				So(err, ShouldBeNil)
-				So(fakeReader.FsUseCount, ShouldEqual, 0)
-				So(fakeReader.InstanceUseCount, ShouldEqual, 1)
-			})
-			Convey("cpu:none metric using instance asset", func() {
-				timeSeries, err := adapter.Fetch(
-					"us-east-1",
-					"12345",
-					"i-12345678",
-					"cpu:none",
-					kNowMillis,
-					kNowMillis+5*3600*1000)
-				So(timeSeries, ShouldBeEmpty)
-				So(err, ShouldBeNil)
-				So(fakeReader.FsUseCount, ShouldEqual, 0)
-				So(fakeReader.InstanceUseCount, ShouldEqual, 1)
-			})
+		asset := tsdbadapter.Asset{
+			Region:        "us-east-1",
+			AccountNumber: "12345",
+			InstanceId:    "i-12345678",
+		}
+		Convey("cpu:even metric using instance asset", func() {
+			timeSeries, err := tsdbadapter.Fetch(
+				fakeReader,
+				&asset,
+				"cpu:even",
+				kNowMillis,
+				kNowMillis+5*3600*1000)
+			So(
+				timeSeries,
+				ShouldResemble,
+				tsdb.TimeSeries{
+					{
+						Ts:    kNowSecs,
+						Value: kNowSecs / 3600.0,
+					},
+					{
+						Ts:    kNowSecs + 2.0*3600.0,
+						Value: kNowSecs/3600.0 + 2.0,
+					},
+					{
+						Ts:    kNowSecs + 4.0*3600.0,
+						Value: kNowSecs/3600.0 + 4.0,
+					},
+				})
+			So(err, ShouldBeNil)
+			So(fakeReader.FsUseCount, ShouldEqual, 0)
+			So(fakeReader.InstanceUseCount, ShouldEqual, 1)
+		})
+		Convey("cpu:odd metric using instance asset", func() {
+			timeSeries, err := tsdbadapter.Fetch(
+				fakeReader,
+				&asset,
+				"cpu:odd",
+				kNowMillis,
+				kNowMillis+5*3600*1000)
+			So(
+				timeSeries,
+				ShouldResemble,
+				tsdb.TimeSeries{
+					{
+						Ts:    kNowSecs + 3600.0,
+						Value: kNowSecs/3600.0 + 1.0,
+					},
+					{
+						Ts:    kNowSecs + 3.0*3600.0,
+						Value: kNowSecs/3600.0 + 3.0,
+					},
+				})
+			So(err, ShouldBeNil)
+			So(fakeReader.FsUseCount, ShouldEqual, 0)
+			So(fakeReader.InstanceUseCount, ShouldEqual, 1)
+		})
+		Convey("cpu:none metric using instance asset", func() {
+			timeSeries, err := tsdbadapter.Fetch(
+				fakeReader,
+				&asset,
+				"cpu:none",
+				kNowMillis,
+				kNowMillis+5*3600*1000)
+			So(timeSeries, ShouldBeEmpty)
+			So(err, ShouldBeNil)
+			So(fakeReader.FsUseCount, ShouldEqual, 0)
+			So(fakeReader.InstanceUseCount, ShouldEqual, 1)
+		})
 
-			Convey("fs:even metric using fs asset", func() {
-				timeSeries, err := adapter.Fetch(
-					"us-east-1",
-					"12345",
-					"i-12345678",
-					"fs:even",
-					kNowMillis,
-					kNowMillis+5*3600*1000)
-				So(
-					timeSeries,
-					ShouldResemble,
-					tsdb.TimeSeries{
-						{
-							Ts:    kNowSecs,
-							Value: kNowSecs / 3600.0,
-						},
-						{
-							Ts:    kNowSecs + 2.0*3600.0,
-							Value: kNowSecs/3600.0 + 2.0,
-						},
-						{
-							Ts:    kNowSecs + 4.0*3600.0,
-							Value: kNowSecs/3600.0 + 4.0,
-						},
-					})
-				So(err, ShouldBeNil)
-				So(fakeReader.FsUseCount, ShouldEqual, 1)
-				So(fakeReader.InstanceUseCount, ShouldEqual, 0)
-			})
-			Convey("fs:odd metric using fs asset", func() {
-				timeSeries, err := adapter.Fetch(
-					"us-east-1",
-					"12345",
-					"i-12345678",
-					"fs:odd",
-					kNowMillis,
-					kNowMillis+5*3600*1000)
-				So(
-					timeSeries,
-					ShouldResemble,
-					tsdb.TimeSeries{
-						{
-							Ts:    kNowSecs + 3600.0,
-							Value: kNowSecs/3600.0 + 1.0,
-						},
-						{
-							Ts:    kNowSecs + 3.0*3600.0,
-							Value: kNowSecs/3600.0 + 3.0,
-						},
-					})
-				So(err, ShouldBeNil)
-				So(fakeReader.FsUseCount, ShouldEqual, 1)
-				So(fakeReader.InstanceUseCount, ShouldEqual, 0)
-			})
-			Convey("fs:none metric using fs asset", func() {
-				timeSeries, err := adapter.Fetch(
-					"us-east-1",
-					"12345",
-					"i-12345678",
-					"fs:none",
-					kNowMillis,
-					kNowMillis+5*3600*1000)
-				So(timeSeries, ShouldBeEmpty)
-				So(err, ShouldBeNil)
-				So(fakeReader.FsUseCount, ShouldEqual, 1)
-				So(fakeReader.InstanceUseCount, ShouldEqual, 0)
-			})
+		Convey("fs:even metric using fs asset", func() {
+			timeSeries, err := tsdbadapter.Fetch(
+				fakeReader,
+				&asset,
+				"fs:even",
+				kNowMillis,
+				kNowMillis+5*3600*1000)
+			So(
+				timeSeries,
+				ShouldResemble,
+				tsdb.TimeSeries{
+					{
+						Ts:    kNowSecs,
+						Value: kNowSecs / 3600.0,
+					},
+					{
+						Ts:    kNowSecs + 2.0*3600.0,
+						Value: kNowSecs/3600.0 + 2.0,
+					},
+					{
+						Ts:    kNowSecs + 4.0*3600.0,
+						Value: kNowSecs/3600.0 + 4.0,
+					},
+				})
+			So(err, ShouldBeNil)
+			So(fakeReader.FsUseCount, ShouldEqual, 1)
+			So(fakeReader.InstanceUseCount, ShouldEqual, 0)
+		})
+		Convey("fs:odd metric using fs asset", func() {
+			timeSeries, err := tsdbadapter.Fetch(
+				fakeReader,
+				&asset,
+				"fs:odd",
+				kNowMillis,
+				kNowMillis+5*3600*1000)
+			So(
+				timeSeries,
+				ShouldResemble,
+				tsdb.TimeSeries{
+					{
+						Ts:    kNowSecs + 3600.0,
+						Value: kNowSecs/3600.0 + 1.0,
+					},
+					{
+						Ts:    kNowSecs + 3.0*3600.0,
+						Value: kNowSecs/3600.0 + 3.0,
+					},
+				})
+			So(err, ShouldBeNil)
+			So(fakeReader.FsUseCount, ShouldEqual, 1)
+			So(fakeReader.InstanceUseCount, ShouldEqual, 0)
+		})
+		Convey("fs:none metric using fs asset", func() {
+			timeSeries, err := tsdbadapter.Fetch(
+				fakeReader,
+				&asset,
+				"fs:none",
+				kNowMillis,
+				kNowMillis+5*3600*1000)
+			So(timeSeries, ShouldBeEmpty)
+			So(err, ShouldBeNil)
+			So(fakeReader.FsUseCount, ShouldEqual, 1)
+			So(fakeReader.InstanceUseCount, ShouldEqual, 0)
 		})
 	})
 }
