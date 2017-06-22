@@ -76,6 +76,8 @@ func main() {
 				if end == 0 {
 					end = time.Now().Unix() * 1000
 				}
+				reader := chreader.NewMemoizedReader(
+					readerConfig.Get().(chreader.Reader))
 				var result []tsdbjson.TimeSeries
 				for _, query := range r.Queries {
 					info, err := extractInfo(query)
@@ -83,7 +85,7 @@ func main() {
 						return nil, err
 					}
 					timeSeries, err := fetchTimeSeries(
-						readerConfig.Get().(chreader.Reader),
+						reader,
 						&info.Asset,
 						info.Name,
 						start,

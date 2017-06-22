@@ -47,6 +47,11 @@ type Reader interface {
 	Read(assetId string, start, end time.Time) ([]*Entry, error)
 }
 
+// NewMemoizedReader returns a memoized version of r.
+func NewMemoizedReader(r Reader) Reader {
+	return newMemoizedReader(r)
+}
+
 // NewReader creates a new reader
 func NewReader(c Config) Reader {
 	return &chReaderType{
