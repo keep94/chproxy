@@ -14,6 +14,7 @@ import (
 	"github.com/Symantec/scotty/tsdbjson"
 	"github.com/Symantec/tricorder/go/healthserver"
 	"github.com/Symantec/tricorder/go/tricorder"
+	"github.com/Symantec/tricorder/go/tricorder/units"
 	"io"
 	"log"
 	"net/http"
@@ -28,8 +29,27 @@ var (
 	fConfigDir = flag.String("configDir", "/etc/chproxy", "config Directory")
 )
 
+var (
+	kTriResponseTimesMillisBucketer = tricorder.NewGeometricBucketer(1e-6, 1e6)
+	kTriQueryTimeDist               = kTriResponseTimesMillisBucketer.NewCumulativeDistribution()
+)
+
+func registerMetrics() error {
+	if err := tricorder.RegisterMetric(
+		"/queries/responseTimes",
+		kTriQueryTimeDist,
+		units.Millisecond,
+		"Successful query response times"); err != nil {
+		return err
+	}
+	return nil
+}
+
 func main() {
 	tricorder.RegisterFlags()
+	if err := registerMetrics(); err != nil {
+		log.Fatal(err)
+	}
 	flag.Parse()
 	rpc.HandleHTTP()
 	circularBuffer := logbuf.New()
@@ -50,6 +70,7 @@ func main() {
 		"/api/query",
 		newTsdbHandler(
 			func(r *tsdbjson.QueryRequest) ([]tsdbjson.TimeSeries, error) {
+				beginTime := time.Now()
 				start := r.StartInMillis
 				end := r.EndInMillis
 				if end == 0 {
@@ -72,6 +93,7 @@ func main() {
 					}
 					result = append(result, timeSeries)
 				}
+				kTriQueryTimeDist.Add(time.Since(beginTime))
 				return result, nil
 			}))
 	http.Handle(
