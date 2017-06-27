@@ -196,6 +196,16 @@ func extractInfo(query *tsdbjson.Query) (*infoType, error) {
 			result.Asset.InstanceId = filter.Filter
 		}
 	}
+	for k, v := range query.Tags {
+		switch k {
+		case kRegion:
+			result.Asset.Region = v
+		case kAccountNumber:
+			result.Asset.AccountNumber = v
+		case kInstanceId:
+			result.Asset.InstanceId = v
+		}
+	}
 	if result.Asset.Region == "" || result.Asset.AccountNumber == "" || result.Asset.InstanceId == "" {
 		return nil, kTagsRequired
 	}
